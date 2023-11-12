@@ -8,8 +8,14 @@ import java.util.Queue;
 
 import static cn.edu.hitsz.compiler.asm.Reg.*;
 
+
+/**
+ * 寄存器分配器
+ */
 public class RegAllocator {
+    // 被分配的寄存器
     private List<Reg> used = new LinkedList<>();
+    // 未分配的寄存器
     private Queue<Reg> avail = new LinkedList<>();
 
     public RegAllocator() {
@@ -22,7 +28,7 @@ public class RegAllocator {
         avail.add(t6);
     }
 
-    private BMap<IRVariable, Reg> regAllocation = new BMap<>();
+    private final BMap<IRVariable, Reg> regAllocation = new BMap<>();
 
     private boolean hasAvailableReg() {
         return !avail.isEmpty();
@@ -85,6 +91,7 @@ public class RegAllocator {
      * @param toUseVars 待用变量列表
      */
     private void checkUnusedVar(Queue<IRVariable> toUseVars) {
+        // 此处无法用迭代器进行遍历，会抛出ConcurrentModificationException，但删除执行的是remove()操作，暂未找到原因
         for (int i = 0; i < used.size(); i++) {//查询当前各个寄存器中存放的变量
             Reg r = used.get(i);
             boolean toUse = false;
@@ -96,10 +103,7 @@ public class RegAllocator {
                 }
             }
             if (!toUse) {
-                regAllocation.removeByValue(r);
-                used.remove(r);
-                avail.add(r);
-                //unbinding(vr, r);
+                unbinding(vr, r);
             }
         }
     }

@@ -225,13 +225,6 @@ public class AssemblyGenerator {
      */
     public void dump(String path) {
         // TODO: 输出汇编代码到文件
-        for (Instruction i : code) {
-            System.out.println(i);
-        }
-
-        for (String s : asmCode) {
-            System.out.println(s);
-        }
         FileUtils.writeLines(path, asmCode.stream().toList());
     }
 }
