@@ -22,8 +22,8 @@ import java.util.Stack;
  *
  */
 public class IRGenerator implements ActionObserver {
-    Stack<Token> symbolStack = new Stack<>();
-    Stack<IRValue> valueStack = new Stack<>();
+    private final Stack<Token> symbolStack = new Stack<>();//符号栈
+    private final Stack<IRValue> valueStack = new Stack<>();//属性栈
 
     private final List<Instruction> code = new ArrayList<>();//中间代码列表
     private SymbolTable symbolTable; //存储源代码中定义的变量
@@ -113,13 +113,11 @@ public class IRGenerator implements ActionObserver {
             case 10, 12 -> {
                 // E -> A;
                 // A -> B;
-                // 弹出A/B
-                var a_val = valueStack.pop();
-
-                // 生成中间代码
-
-                // 将E/A压入栈
-                valueStack.push(a_val);
+                // 弹出后再压入，本质上栈的内容不会发生任何改变
+                //    // 弹出A/B
+                //    var a_val = valueStack.pop();
+                //    // 将E/A压入栈
+                //    valueStack.push(a_val);
             }
             case 11 -> {
                 // A -> A * B;

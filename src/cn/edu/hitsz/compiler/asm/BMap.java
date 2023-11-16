@@ -1,16 +1,12 @@
 package cn.edu.hitsz.compiler.asm;
 
-import java.util.*;
-
-import static cn.edu.hitsz.compiler.asm.Reg.*;
+import java.util.HashMap;
+import java.util.Map;
 
 // 双射
 public class BMap<K, V> {
     private final Map<K, V> KVmap = new HashMap<>();
     private final Map<V, K> VKmap = new HashMap<>();
-
-
-
     public void removeByKey(K key) {
         VKmap.remove(KVmap.remove(key));
     }
@@ -36,7 +32,4 @@ public class BMap<K, V> {
     public K getByValue(V value) {
         return VKmap.get(value);
     }
-
-
-
 }

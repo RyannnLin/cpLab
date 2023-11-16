@@ -1,15 +1,12 @@
 package cn.edu.hitsz.compiler.parser;
 
-import cn.edu.hitsz.compiler.NotImplementedException;
 import cn.edu.hitsz.compiler.lexer.Token;
 import cn.edu.hitsz.compiler.lexer.TokenKind;
 import cn.edu.hitsz.compiler.parser.table.*;
 import cn.edu.hitsz.compiler.symtab.Symbol;
 import cn.edu.hitsz.compiler.symtab.SymbolTable;
 
-import javax.swing.text.html.HTMLDocument;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Stack;
 
@@ -85,15 +82,17 @@ public class SyntaxAnalyzer {
         // 你可以自行选择要如何存储词法单元, 譬如使用迭代器, 或是栈, 或是干脆使用一个 list 全存起来
         // 需要注意的是, 在实现驱动程序的过程中, 你会需要面对只读取一个 token 而不能消耗它的情况,
         // 在自行设计的时候请加以考虑此种情况
-//        while (tokens.iterator().hasNext()) {
-//            tokenlist.add(tokens.iterator().next());
-//        }
         for (Token token : tokens) {
             tokenlist.add(token);
         }
         symbolStack.push(new Symbol(Token.simple(TokenKind.fromString("$"))));//将第一个符号压入符号栈
     }
 
+    /**
+     * 将分析表中的初始状态压入状态栈，后续的语法分析中不会再用到该分析表
+     *
+     * @param table LR分析表
+     */
     public void loadLRTable(LRTable table) {
         // TODO: 加载 LR 分析表
         // 你可以自行选择要如何使用该表格:
@@ -117,7 +116,6 @@ public class SyntaxAnalyzer {
                 return;
             } else if (currentActionKind.equals(Action.ActionKind.Reduce)) {
                 //规约
-
                 List<Term> body = currentStatus.getAction(currentToken).getProduction().body();//获取当前状态对应的产生式的尾部
                 NonTerminal head = currentStatus.getAction(currentToken).getProduction().head();//获取当前状态对应的产生式的头部
                 callWhenInReduce(currentStatus, currentStatus.getAction(currentToken).getProduction());//通知观察者
@@ -128,7 +126,6 @@ public class SyntaxAnalyzer {
                 }//将产生式尾部的符号和状态对应地弹出符号栈和状态栈
                 symbolStack.push(new Symbol(head));//产生式头部压入符号栈
                 statusStack.push(statusStack.peek().getGoto(head));//将goto压入状态栈
-
             } else if (currentActionKind.equals(Action.ActionKind.Shift)) {
                 //移进
                 symbolStack.push(new Symbol(currentToken));//符号入栈

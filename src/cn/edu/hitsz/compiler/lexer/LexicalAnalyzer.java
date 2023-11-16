@@ -19,6 +19,7 @@ import java.util.stream.StreamSupport;
 public class LexicalAnalyzer {
     private final SymbolTable symbolTable;
     private List<Token> tokens;
+    // 缓冲区
     private List<Character> buf;
 
 
@@ -56,22 +57,22 @@ public class LexicalAnalyzer {
      * 需要维护实验一所需的符号表条目, 而得在语法分析中才能确定的符号表条目的成员可以先设置为 null
      */
     private int buf_iter;
-
-    public void run() {
-        // TODO: 自动机实现的词法分析过程
-        state = 0;//初始化
-        buf_iter = 0;
-        tokens = new ArrayList<>();
-        while (buf_iter < buf.size()) {
-            setState(buf.get(buf_iter));
-        }
-        if (buf_iter == (buf.size())) {
-            tokens.add(Token.simple(TokenKind.fromString("$")));
-        }
-    }
-
     private String word = "";
     private int state;//状态机状态
+
+public void run() {
+    // TODO: 自动机实现的词法分析过程
+    state = 0;//初始化
+    buf_iter = 0;
+    tokens = new ArrayList<>();
+    while (buf_iter < buf.size()) {
+        setState(buf.get(buf_iter));
+    }
+    if (buf_iter == (buf.size())) {
+        tokens.add(Token.simple(TokenKind.fromString("$")));
+    }
+}
+
 
     /**
      * 状态机
@@ -79,7 +80,6 @@ public class LexicalAnalyzer {
      * @param c 读取的字符
      */
     private void setState(char c) {
-
         switch (state) {
             case 0 -> {
                 if (Character.isWhitespace(c)) {
@@ -135,7 +135,7 @@ public class LexicalAnalyzer {
                 } else {
                     //标识符部分
                     tokens.add(Token.normal(TokenKind.fromString("id"), word));
-                    if(!symbolTable.has(word)){
+                    if (!symbolTable.has(word)) {
                         symbolTable.add(word);
                     }
                 }
@@ -269,13 +269,13 @@ public class LexicalAnalyzer {
      *
      * @return Token 列表
      */
-    public Iterable<Token> getTokens() {
-        // TODO: 从词法分析过程中获取 Token 列表
-        // 词法分析过程可以使用 Stream 或 Iterator 实现按需分析
-        // 亦可以直接分析完整个文件
-        // 总之实现过程能转化为一列表即可
-        return tokens;
-    }
+public Iterable<Token> getTokens() {
+    // TODO: 从词法分析过程中获取 Token 列表
+    // 词法分析过程可以使用 Stream 或 Iterator 实现按需分析
+    // 亦可以直接分析完整个文件
+    // 总之实现过程能转化为一列表即可
+    return tokens;
+}
 
     /**
      * 打印词法分析结果到Token.txt

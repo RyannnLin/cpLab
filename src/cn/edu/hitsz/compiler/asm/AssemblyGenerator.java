@@ -29,13 +29,12 @@ import java.util.Queue;
 public class AssemblyGenerator {
 
     // 预处理后的中间代码列表
-    private List<Instruction> code = new ArrayList<>();
-
+    private final List<Instruction> code = new ArrayList<>();
     // 预处理后中间代码的变量数队列
-    private Queue<Integer> varCount = new LinkedList<>();
+    private final Queue<Integer> varCount = new LinkedList<>();
     // 预处理后中间代码的变量队列
-    private Queue<IRVariable> toUseVars = new LinkedList<>();
-    private List<String> asmCode = new ArrayList<>();
+    private final Queue<IRVariable> toUseVars = new LinkedList<>();
+    private final List<String> asmCode = new ArrayList<>();
     private final RegAllocator ra = new RegAllocator();
 
     /**
@@ -94,7 +93,7 @@ public class AssemblyGenerator {
                         case ADD -> result = lhs.getValue() + rhs.getValue();
                         case SUB -> result = lhs.getValue() - rhs.getValue();
                         case MUL -> result = lhs.getValue() * rhs.getValue();
-                        default -> throw new RuntimeException("如果两个操作数均为立即数：处理错误");
+                        default -> throw new RuntimeException("两个操作数均为立即数：处理错误");
                     }
                     code.add(Instruction.createMov(i.getResult(), IRImmediate.of(result)));
                 } else if (i.getLHS().isIRVariable() && i.getRHS().isImmediate()) {
@@ -150,72 +149,71 @@ public class AssemblyGenerator {
      * 提示: 寄存器分配中需要的信息较多, 关于全局的与代码生成过程无关的信息建议在代码生
      * 成前完成建立, 与代码生成的过程相关的信息可自行设计数据结构进行记录并动态维护.
      */
-    public void run() {
-        // TODO: 执行寄存器分配与代码生成
-        // TODO 将所有出现的变量先全部导入一个列表，每当使用一个变量后，删除该变量。遍历该列表判断后续是否还会使用到某个变量。
+public void run() {
+    // TODO: 执行寄存器分配与代码生成
+    // TODO 将所有出现的变量先全部导入一个列表，每当使用一个变量后，删除该变量。遍历该列表判断后续是否还会使用到某个变量。
+    for (Instruction i : code) {
+        InstructionKind kind = i.getKind();
+        // 获取当前指令要用到的变量的数目
+        int varNum = varCount.remove();
+        // 从待用寄存器队列中弹出当前指令要用到的变量
+        for (int n = 0; n < varNum; n++) {
+            toUseVars.remove();
+        }
+        if (kind.isBinary()) {
 
-        for (Instruction i : code) {
-            InstructionKind kind = i.getKind();
-            // 获取当前指令要用到的变量的数目
-            int varNum = varCount.remove();
-            // 从待用寄存器队列中弹出当前指令要用到的变量
-            for (int n = 0; n < varNum; n++) {
-                toUseVars.remove();
+            Reg lhsR = ra.allocateReg(toUseVars, (IRVariable) i.getLHS());
+            String op = "";
+            if (varNum == 3) {
+                //没有立即数
+                assert i.getRHS().isIRVariable();
+                Reg rhsR = ra.allocateReg(toUseVars, (IRVariable) i.getRHS());
+                switch (kind) {
+                    case ADD -> op = "add";
+                    case SUB -> op = "sub";
+                    case MUL -> op = "mul";
+                }
+                Reg resultR = ra.allocateReg(toUseVars, i.getResult());
+                asmCode.add(AsmCodeCreator.createBinary(op, resultR, lhsR, rhsR, i));
+            } else if (varNum == 2) {
+                // 有一个立即数
+                assert i.getRHS().isImmediate();
+                int imm = ((IRImmediate) i.getRHS()).getValue();
+                op = "addi";
+                if (kind == InstructionKind.SUB) {
+                    imm = -imm;
+                }
+                Reg resultR = ra.allocateReg(toUseVars, i.getResult());
+                asmCode.add(AsmCodeCreator.createBinary(op, resultR, lhsR, imm, i));
             }
-            if (kind.isBinary()) {
+        } else if (kind.isUnary()) {
 
-                Reg lhsR = ra.allocateReg(toUseVars, (IRVariable) i.getLHS());
-                String op = "";
-                if (varNum == 3) {
-                    //没有立即数
-                    assert i.getRHS().isIRVariable();
-                    Reg rhsR = ra.allocateReg(toUseVars, (IRVariable) i.getRHS());
-                    switch (kind) {
-                        case ADD -> op = "add";
-                        case SUB -> op = "sub";
-                        case MUL -> op = "mul";
-                    }
-                    Reg resultR = ra.allocateReg(toUseVars, i.getResult());
-                    asmCode.add(AsmCodeCreator.createBinary(op, resultR, lhsR, rhsR, i));
-                } else if (varNum == 2) {
-                    // 有一个立即数
-                    assert i.getRHS().isImmediate();
-                    int imm = ((IRImmediate) i.getRHS()).getValue();
-                    op = "addi";
-                    if (kind == InstructionKind.SUB) {
-                        imm = -imm;
-                    }
-                    Reg resultR = ra.allocateReg(toUseVars, i.getResult());
-                    asmCode.add(AsmCodeCreator.createBinary(op, resultR, lhsR, imm, i));
-                }
-            } else if (kind.isUnary()) {
+            if (varNum == 2) {
+                // 没有立即数
+                assert i.getFrom().isIRVariable();
+                Reg fromR = ra.allocateReg(toUseVars, (IRVariable) i.getFrom());
+                Reg resultR = ra.allocateReg(toUseVars, i.getResult());
+                asmCode.add(AsmCodeCreator.createUnary("mv", resultR, fromR, i));
+            } else if (varNum == 1) {
+                // 有一个立即数
+                assert i.getFrom().isImmediate();
+                int imm = ((IRImmediate) i.getFrom()).getValue();
+                Reg resultR = ra.allocateReg(toUseVars, i.getResult());
+                asmCode.add(AsmCodeCreator.createUnary("li", resultR, imm, i));
+            }
+        } else if (kind.isReturn()) {
+            if (i.getReturnValue().isIRVariable()) {
+                Reg r = ra.allocateReg(toUseVars, (IRVariable) i.getReturnValue());
 
-                if (varNum == 2) {
-                    // 没有立即数
-                    assert i.getFrom().isIRVariable();
-                    Reg fromR = ra.allocateReg(toUseVars, (IRVariable) i.getFrom());
-                    Reg resultR = ra.allocateReg(toUseVars, i.getResult());
-                    asmCode.add(AsmCodeCreator.createUnary("mv", resultR, fromR, i));
-                } else if (varNum == 1) {
-                    // 有一个立即数
-                    assert i.getFrom().isImmediate();
-                    int imm = ((IRImmediate) i.getFrom()).getValue();
-                    Reg resultR = ra.allocateReg(toUseVars, i.getResult());
-                    asmCode.add(AsmCodeCreator.createUnary("li", resultR, imm, i));
-                }
-            } else if (kind.isReturn()) {
-                if (i.getReturnValue().isIRVariable()) {
-                    Reg r = ra.allocateReg(toUseVars, (IRVariable) i.getReturnValue());
+                asmCode.add(AsmCodeCreator.createUnary("mv", Reg.a0, r, i));
+            } else if (i.getReturnValue().isImmediate()) {
+                int imm = ((IRImmediate) i.getReturnValue()).getValue();
 
-                    asmCode.add(AsmCodeCreator.createUnary("mv", Reg.a0, r, i));
-                } else if (i.getReturnValue().isImmediate()) {
-                    int imm = ((IRImmediate) i.getReturnValue()).getValue();
-
-                    asmCode.add(AsmCodeCreator.createUnary("mv", Reg.a0, imm, i));
-                }
+                asmCode.add(AsmCodeCreator.createUnary("mv", Reg.a0, imm, i));
             }
         }
     }
+}
 
 
     /**
@@ -223,9 +221,9 @@ public class AssemblyGenerator {
      *
      * @param path 输出文件路径
      */
-    public void dump(String path) {
-        // TODO: 输出汇编代码到文件
-        FileUtils.writeLines(path, asmCode.stream().toList());
-    }
+public void dump(String path) {
+    // TODO: 输出汇编代码到文件
+    FileUtils.writeLines(path, asmCode.stream().toList());
+}
 }
 

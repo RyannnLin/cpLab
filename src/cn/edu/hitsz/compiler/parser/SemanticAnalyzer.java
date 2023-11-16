@@ -22,7 +22,6 @@ public class SemanticAnalyzer implements ActionObserver {
     //语义分析栈和符号栈
     private final Stack<SourceCodeType> typeStack = new Stack<>();
     private final Stack<Token> symbolStack = new Stack<>();
-
     private SymbolTable symbolTable; //存储源代码中定义的变量
 
     @Override
@@ -55,7 +54,6 @@ public class SemanticAnalyzer implements ActionObserver {
                 // 将D的类型设置为int
                 typeStack.push(SourceCodeType.Int);
             }
-
             default -> typeStack.push(null);
         }
     }

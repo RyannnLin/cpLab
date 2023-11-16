@@ -118,6 +118,13 @@ public class RegAllocator {
         return regAllocation.getByKey(v);
     }
 
+    /**
+     * 为变量分配寄存器。先查找是否已经分配。如果未分配，则分配一个新寄存器
+     *
+     * @param toUseVars 待用变量队列
+     * @param vr 变量
+     * @return 分配的寄存器
+     */
     public Reg allocateReg(Queue<IRVariable> toUseVars, IRVariable vr) {
         Reg r = getRegByVar(vr);
         if (r == null) {
